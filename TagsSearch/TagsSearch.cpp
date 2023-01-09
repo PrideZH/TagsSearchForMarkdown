@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <Windows.h>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -39,6 +40,31 @@ string& trim(std::string& s)
 	s.erase(0, s.find_first_not_of(" "));
 	s.erase(s.find_last_not_of(" ") + 1);
 	return s;
+}
+
+string UTF8ToGB(const string& str)
+{
+	string result;
+	WCHAR *strSrc;
+	LPSTR szRes;
+
+	const char* c_str = str.c_str();
+
+	// 获得临时变量的大小
+	int i = MultiByteToWideChar(CP_UTF8, 0, c_str, -1, NULL, 0);
+	strSrc = new WCHAR[i + 1];
+	MultiByteToWideChar(CP_UTF8, 0, c_str, -1, strSrc, i);
+
+	// 获得临时变量的大小
+	i = WideCharToMultiByte(CP_ACP, 0, strSrc, -1, NULL, 0, NULL, NULL);
+	szRes = new CHAR[i + 1];
+	WideCharToMultiByte(CP_ACP, 0, strSrc, -1, szRes, i, NULL, NULL);
+
+	result = szRes;
+	delete[]strSrc;
+	delete[]szRes;
+
+	return result;
 }
 
 void init() {
@@ -90,26 +116,43 @@ void run() {
 		fstream file;
 		string buf;
 		string filePath = "./temp/temp-" + to_string(time(0)) + ".md";
-		file.open(filePath, ios::out);
+		file.open(filePath, ios::out | ios::binary);
+		if (!file.is_open())
+		{
+			cout << "临时文件创建失败" << endl;
+			return;
+		}
 
 		int count = 5;
 		for (Info info : infos) {
 			if (--count == 0)
 				break;
-			file << "## " << info.fileName << endl;
+			file << endl << "## " << info.fileName << endl;
 			fstream infoFile;
-			infoFile.open("./data/" + info.fileName + ".md", ios::in);
+			string path = UTF8ToGB("./data/" + info.fileName + ".md");
+			infoFile.open(path, ios::in | ios::binary);
 			if (!infoFile.is_open())
 			{
-				cout << "找不到文件: " + info.fileName + ".md" << endl;
+				cout << "找不到文件: " + path << endl;
 				return;
 			}
-			while (getline(infoFile, buf))
-				file << buf << endl;
+			while (!infoFile.eof()) {
+				char szBuf;
+				infoFile.read(&szBuf, sizeof(char));
+
+				if (infoFile.eof())
+					break;
+
+				if (file.bad())
+					break;
+
+				file.write(&szBuf, sizeof(char));
+			}
+			infoFile.close();
 		}
 		file.close();
 
-		system(("start " + filePath).c_str());
+		std::system(("start " + filePath).c_str());
 	}
 }
 
