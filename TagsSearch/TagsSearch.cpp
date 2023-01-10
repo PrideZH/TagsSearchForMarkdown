@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <ctime>
 
+#include <stdio.h>
+#include <io.h>
+
 using namespace std;
 
 struct Info {
@@ -74,7 +77,7 @@ void init() {
 	file.open("./data/tags.conf", ios::in);
 	if (!file.is_open())
 	{
-		cout << "找不到配置文件" << endl;
+		printf("找不到配置文件\n");
 		return;
 	}
 	while (getline(file, buf)) {
@@ -85,12 +88,34 @@ void init() {
 		infos.push_back({ tags, trim(nameAndTags[0]) });
 	}
 	file.close();
+	// Clean up temporary files
+	_finddata_t dir_info;
+	_finddata_t file_info;
+	intptr_t f_handle;
+	char tmp_path[1024];
+	if ((f_handle = _findfirst("./temp/*.md", &dir_info)) != -1)
+	{
+		while (_findnext(f_handle, &file_info) == 0) {
+			strcpy_s(tmp_path, "./temp/\0");
+			strcat_s(tmp_path, file_info.name);
+			if (remove(tmp_path) - 1) {
+				errno_t err;
+				_get_errno(&err);
+				if (EACCES == err)
+				{
+					printf("%s had been opend by some application, can't delete.\n", tmp_path);
+					break;
+				}
+			}
+		}
+	}
 }
 
 void run() {
 	string tagsStr;
 	while (true)
 	{
+		cin.get();
 		getline(cin, tagsStr);
 		vector<string> tags = split(tagsStr, ",");
 
@@ -119,7 +144,7 @@ void run() {
 		file.open(filePath, ios::out | ios::binary);
 		if (!file.is_open())
 		{
-			cout << "临时文件创建失败" << endl;
+			printf("临时文件创建失败\n");
 			return;
 		}
 
