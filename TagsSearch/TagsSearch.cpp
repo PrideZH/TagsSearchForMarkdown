@@ -1,11 +1,9 @@
-﻿#include <iostream>
-#include <Windows.h>
-#include <vector>
-#include <string>
+﻿#include "string_util.h"
+#include <windows.h>
+#include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <ctime>
-
 #include <stdio.h>
 #include <io.h>
 
@@ -19,57 +17,6 @@ struct Info {
 
 vector<Info> infos;
 
-vector<string> split(const string& s, const string& seperator)
-{
-	vector<string> result;
-	string::size_type left = 0, right = s.find(seperator);
-	while (string::npos != right)
-	{
-		result.push_back(s.substr(left, right - left));
-
-		left = right + seperator.size();
-		right = s.find(seperator, left);
-	}
-	if (left != s.length())
-		result.push_back(s.substr(left));
-	return result;
-}
-
-string& trim(std::string& s)
-{
-	if (s.empty())
-		return s;
-
-	s.erase(0, s.find_first_not_of(" "));
-	s.erase(s.find_last_not_of(" ") + 1);
-	return s;
-}
-
-string UTF8ToGB(const string& str)
-{
-	string result;
-	WCHAR *strSrc;
-	LPSTR szRes;
-
-	const char* c_str = str.c_str();
-
-	// 获得临时变量的大小
-	int i = MultiByteToWideChar(CP_UTF8, 0, c_str, -1, NULL, 0);
-	strSrc = new WCHAR[i + 1];
-	MultiByteToWideChar(CP_UTF8, 0, c_str, -1, strSrc, i);
-
-	// 获得临时变量的大小
-	i = WideCharToMultiByte(CP_ACP, 0, strSrc, -1, NULL, 0, NULL, NULL);
-	szRes = new CHAR[i + 1];
-	WideCharToMultiByte(CP_ACP, 0, strSrc, -1, szRes, i, NULL, NULL);
-
-	result = szRes;
-	delete[]strSrc;
-	delete[]szRes;
-
-	return result;
-}
-
 void init() {
 	// Read configuration file
 	fstream file;
@@ -81,11 +28,11 @@ void init() {
 		return;
 	}
 	while (getline(file, buf)) {
-		vector<string> nameAndTags = split(buf, ":");
+		vector<string> nameAndTags = StringUtil::split(buf, ":");
 		vector<string> tags;
-		for (string tag : split(nameAndTags[1], ","))
-			tags.push_back(UTF8ToGB(trim(tag)));
-		infos.push_back({ tags, trim(nameAndTags[0]) });
+		for (string tag : StringUtil::split(nameAndTags[1], ","))
+			tags.push_back(StringUtil::UTF8ToGB(StringUtil::trim(tag)));
+		infos.push_back({ tags, StringUtil::trim(nameAndTags[0]) });
 	}
 	file.close();
 	// Clean up temporary files
@@ -116,15 +63,15 @@ void run() {
 	while (true)
 	{
 		getline(cin, tagsStr);
-		vector<string> tags = split(tagsStr, ",");
+		vector<string> tags = StringUtil::split(tagsStr, ",");
 
 		// Initialize the weight value
-		for (int i = 0; i < infos.size(); i++)
+		for (size_t i = 0; i < infos.size(); i++)
 			infos[i].weight = 0;
 
 		for (string tag : tags) {
 			// Calculated weight value
-			for (int i = 0; i < infos.size(); i++) {
+			for (size_t i = 0; i < infos.size(); i++) {
 				for (string infoTag : infos[i].tags) {
 					if (tag == infoTag) {
 						infos[i].weight++;
@@ -135,9 +82,6 @@ void run() {
 		}
 
 		sort(infos.begin(), infos.end(), [](Info a, Info b) { return a.weight > b.weight; });
-		for (int i = 0; i < infos.size(); i++) {
-			cout << infos[i].fileName << " - " << infos[i].weight << endl;
-		}
 
 		// Construct the file and open it
 		fstream file;
@@ -156,7 +100,7 @@ void run() {
 				break;
 			file << endl << "## " << info.fileName << endl;
 			fstream infoFile;
-			string path = UTF8ToGB("./data/" + info.fileName + ".md");
+			string path = StringUtil::UTF8ToGB("./data/" + info.fileName + ".md");
 			infoFile.open(path, ios::in | ios::binary);
 			if (!infoFile.is_open())
 			{
