@@ -84,7 +84,7 @@ void init() {
 		vector<string> nameAndTags = split(buf, ":");
 		vector<string> tags;
 		for (string tag : split(nameAndTags[1], ","))
-			tags.push_back(trim(tag));
+			tags.push_back(UTF8ToGB(trim(tag)));
 		infos.push_back({ tags, trim(nameAndTags[0]) });
 	}
 	file.close();
@@ -115,20 +115,19 @@ void run() {
 	string tagsStr;
 	while (true)
 	{
-		cin.get();
 		getline(cin, tagsStr);
 		vector<string> tags = split(tagsStr, ",");
 
 		// Initialize the weight value
-		for (Info info : infos)
-			info.weight = 0;
+		for (int i = 0; i < infos.size(); i++)
+			infos[i].weight = 0;
 
 		for (string tag : tags) {
 			// Calculated weight value
-			for (Info info : infos) {
-				for (string infoTag : info.tags) {
+			for (int i = 0; i < infos.size(); i++) {
+				for (string infoTag : infos[i].tags) {
 					if (tag == infoTag) {
-						info.weight++;
+						infos[i].weight++;
 						break;
 					}
 				}
@@ -136,6 +135,9 @@ void run() {
 		}
 
 		sort(infos.begin(), infos.end(), [](Info a, Info b) { return a.weight > b.weight; });
+		for (int i = 0; i < infos.size(); i++) {
+			cout << infos[i].fileName << " - " << infos[i].weight << endl;
+		}
 
 		// Construct the file and open it
 		fstream file;
