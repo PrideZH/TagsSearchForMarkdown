@@ -15,15 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TagsSearch.cpp">
+    <ClCompile Include="string_util.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="string_util.cpp">
+    <ClCompile Include="file_util.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="string_util.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="file_util.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
