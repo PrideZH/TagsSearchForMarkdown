@@ -19,37 +19,27 @@ struct Info {
 vector<Info> infos;
 
 void init() {
-	// Read configuration file
-	fstream* file;
-	if ((file = FileUtil::open("./data/tags.conf", ios::in)) == NULL)
-	{
-		printf("找不到配置文件\n");
-		return;
-	}
-
+	// Read repo
 	string buf;
-	while (getline(*file, buf)) {
-		vector<string> nameAndTags = StringUtil::split(buf, ":");
-		vector<string> tags;
-		for (string tag : StringUtil::split(nameAndTags[1], ","))
-			tags.push_back(StringUtil::UTF8ToGB(StringUtil::trim(tag)));
-		infos.push_back({ tags, StringUtil::trim(nameAndTags[0]) });
+	vector<util::File*> files = util::FileUtil::getFiles("./repo/", "*.md");
+	for (util::File* file : files) {
+		if (!file->open(ios::in)) continue;
+		getline(*file->fileStream, buf);
+		if (buf.substr(0, 5) != "tags:") {
+			cout << "格式错误: " << file->filepath << endl;
+			continue;
+		}
+		vector<string> tags = StringUtil::split(StringUtil::split(buf, ":")[1], ",");
+		for (size_t i = 0; i < tags.size(); i++)
+			tags[i] = StringUtil::trim(tags[i]);
+		infos.push_back({ tags, StringUtil::trim(file->name) });
+		file->close();
 	}
-	FileUtil::close(file);
 
 	// Clean up temporary files
-	vector<string> tempFilePaths = FileUtil::listFilePaths("./temp/", "*.md");
-	for (string path : tempFilePaths) {
-		if (remove(path.c_str()) - 1) {
-			errno_t err;
-			_get_errno(&err);
-			if (EACCES == err)
-			{
-				printf("%s had been opend by some application, can't delete.\n", path.c_str());
-				break;
-			}
-		}
-	}
+	vector<util::File*> tempFiles = util::FileUtil::getFiles("./temp/", "*.md");
+	for (util::File* file : tempFiles)
+		file->remove();
 }
 
 void run() {
@@ -78,11 +68,11 @@ void run() {
 		sort(infos.begin(), infos.end(), [](Info a, Info b) { return a.weight > b.weight; });
 
 		// Construct the file and open it
-		fstream* outFile;
-		fstream* inFile;
+		util::File* outFile;
+		util::File* inFile;
 		string buf;
 		string filePath = "./temp/temp-" + to_string(time(0)) + ".md";
-		if ((outFile = FileUtil::open(filePath, ios::out | ios::binary)) == NULL)
+		if ((outFile = util::FileUtil::open(filePath, ios::out)) == NULL)
 		{
 			printf("临时文件创建失败\n");
 			return;
@@ -92,28 +82,34 @@ void run() {
 		for (Info info : infos) {
 			if (--count == 0)
 				break;
-			*outFile << endl << "## " << info.fileName << endl;
-			string path = StringUtil::UTF8ToGB("./data/" + info.fileName + ".md");
-			if ((inFile = FileUtil::open(path, ios::in | ios::binary)) == NULL)
+			string path = "./repo/" + info.fileName + ".md";
+			if ((inFile = util::FileUtil::open(path, ios::in)) == NULL)
 			{
 				cout << "找不到文件: " + path << endl;
 				return;
 			}
-			while (!inFile->eof()) {
+
+			*outFile->fileStream << endl << "## [" + StringUtil::toUTF8(info.fileName) + "](" + StringUtil::toUTF8(path) + ")" << endl;
+			*outFile->fileStream << "<p>" << endl;
+			for (string tag : info.tags)
+				*outFile->fileStream << "<img alt = \"" + tag + "\" src = \"https://img.shields.io/badge/-" + tag + "-lightgrey\">" << endl;
+			*outFile->fileStream << "</p>" << endl;
+
+			while (!inFile->fileStream->eof()) {
 				char szBuf;
-				inFile->read(&szBuf, sizeof(char));
+				inFile->fileStream->read(&szBuf, sizeof(char));
 
-				if (inFile->eof())
+				if (inFile->fileStream->eof())
 					break;
 
-				if (outFile->bad())
+				if (outFile->fileStream->bad())
 					break;
 
-				outFile->write(&szBuf, sizeof(char));
+				outFile->fileStream->write(&szBuf, sizeof(char));
 			}
-			FileUtil::close(inFile);
+			inFile->close();
 		}
-		FileUtil::close(outFile);
+		outFile->close();
 
 		std::system(("start " + filePath).c_str());
 	}

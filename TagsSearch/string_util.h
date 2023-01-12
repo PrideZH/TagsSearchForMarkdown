@@ -17,7 +17,9 @@ public:
 	 */
 	static std::string& trim(std::string& s);
 
-	static std::string UTF8ToGB(const std::string& str);
+	static std::string toUTF8(const std::string & str);
+
+	static std::string UTF8ToGBK(const std::string& str);
 };
 
 #endif // _STRING_UTIL_H_
